@@ -7,6 +7,10 @@
 //
 
 #import "AppDelegate.h"
+#import "OfferParser.h"
+#import "Offer.h"
+#import "CategoryParser.h"
+#import "Category.h"
 
 @interface AppDelegate ()
 
@@ -16,9 +20,39 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Override point for customization after application launch.
+    dispatch_async(dispatch_get_global_queue(0,0), ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [[NSNotificationCenter defaultCenter]
+             postNotificationName:@"startParsing"
+             object:nil];
+        });
+        [self parseCategory];
+        [self parseOffer];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [[NSNotificationCenter defaultCenter]
+             postNotificationName:@"finishParsing"
+             object:nil];
+        });
+    });
     return YES;
 }
+
+#pragma mark - Parsing Offer
+
+-(void) parseOffer{
+    self.offerArray = [[NSMutableArray alloc]init];
+    OfferParser *offerParser = [[OfferParser alloc]initWithArray:self.offerArray];
+    [offerParser parseXMLFile];
+}
+
+#pragma mark - Parsing Category
+
+-(void) parseCategory{
+    self.categoryArray = [[NSMutableArray alloc]init];
+    CategoryParser *categoryParser = [[CategoryParser alloc]initWithArray:self.categoryArray];
+    [categoryParser parseXMLFile];
+}
+
 
 - (void)applicationWillResignActive:(UIApplication *)application {
     // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
