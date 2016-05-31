@@ -23,16 +23,20 @@
 
 @implementation CategoryParser
 
--(id) initWithArray: (NSMutableArray *)categoryArray{
-    self = [super init];
-    if (self)
-    {
-        self.categoryArray = categoryArray;
-    }
-    return self;
+#pragma mark Singleton Methods
+
++ (id)sharedCategoryParser {
+    static CategoryParser *sharedCategoryParser = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        sharedCategoryParser = [[self alloc] init];
+    });
+    return sharedCategoryParser;
 }
 
 -(void) parseXMLFile{
+    self.wasParsed = YES;
+    self.categoryArray = [[NSMutableArray alloc]init];
     NSURL *xmlPath = [NSURL URLWithString:@"http://ufa.farfor.ru/getyml/?key=ukAXxeJYZN"];
     self.parser = [[NSXMLParser alloc]initWithContentsOfURL:xmlPath];
     self.parser.delegate = (id)self;

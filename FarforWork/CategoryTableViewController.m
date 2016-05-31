@@ -12,16 +12,17 @@
 #import "SWRevealViewController.h"
 #import "Offer.h"
 #import "Category.h"
-#import "AppDelegate.h"
 #import "Reachability.h"
-
+#import "Offer.h"
+#import "OfferParser.h"
+#import "Category.h"
+#import "CategoryParser.h"
 
 @interface CategoryTableViewController ()
 
 @property (strong, nonatomic) IBOutlet UITableView *categoryTableView;
 @property (strong,nonatomic) NSMutableArray *offerArray;
 @property (strong,nonatomic) NSMutableArray *categoryArray;
-@property (strong,nonatomic) AppDelegate *delegate;
 @property (strong,nonatomic) UIActivityIndicatorView *activityIndicatorView;
 @property (nonatomic) Reachability *internetReachability;
 
@@ -34,15 +35,6 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.tableView.rowHeight = 70;
-    self.delegate = [[UIApplication sharedApplication] delegate];
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(controller:)
-                                                 name:@"startParsing"
-                                               object:nil];
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(controller:)
-                                                 name:@"finishParsing"
-                                               object:nil];
 
     SWRevealViewController *revealViewController = self.revealViewController;
     if ( revealViewController )
@@ -51,68 +43,75 @@
         [self.sidebarButton setAction: @selector( revealToggle: )];
         [self.view addGestureRecognizer:self.revealViewController.panGestureRecognizer];
     }
-    self.offerArray = self.delegate.offerArray;
-    self.categoryArray = self.delegate.categoryArray;
     
-    // setting up Reachability
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reachabilityChanged:) name:kReachabilityChangedNotification object:nil];
+//    // setting up Reachability
+//    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reachabilityChanged:) name:kReachabilityChangedNotification object:nil];
+//    
+//    self.internetReachability = [Reachability reachabilityForInternetConnection];
+//    [self.internetReachability startNotifier];
+//    [self checkReachability:self.internetReachability];
     
-    self.internetReachability = [Reachability reachabilityForInternetConnection];
-    [self.internetReachability startNotifier];
-    [self checkReachability:self.internetReachability];
+    [self parseInfo];
 }
 
-- (void) dealloc
+#pragma mark - Parse Info
+
+- (void)parseInfo
 {
-    [[NSNotificationCenter defaultCenter] removeObserver:self name:@"startParsing" object:nil];
-    [[NSNotificationCenter defaultCenter] removeObserver:self name:@"finishParsing" object:nil];
-}
-
-- (void)controller:(NSNotification *) notification {
-    
-    if ([[notification name] isEqualToString:@"startParsing"]){
-        self.activityIndicatorView = [[UIActivityIndicatorView alloc]initWithFrame:CGRectMake(0, 0, 50, 50)];
-        [self configureActivityIndicatorView:self.activityIndicatorView withCenter:self.categoryTableView.center];
-        [self.view addSubview: self.activityIndicatorView];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.activityIndicatorView startAnimating];
+    CategoryParser *sharedCategoryParser = [CategoryParser sharedCategoryParser];
+    OfferParser *sharedOfferParser = [OfferParser sharedOfferParser];
+    if (!sharedCategoryParser.wasParsed)
+    {
+        dispatch_async(dispatch_get_global_queue(0,0), ^{
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self.activityIndicatorView = [[UIActivityIndicatorView alloc]initWithFrame:CGRectMake(0, 0, 50, 50)];
+                [self configureActivityIndicatorView:self.activityIndicatorView withCenter:self.categoryTableView.center];
+                [self.view addSubview: self.activityIndicatorView];
+                [self.activityIndicatorView startAnimating];
+            });
+            [sharedCategoryParser parseXMLFile];
+            [sharedOfferParser parseXMLFile];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self.categoryArray = sharedCategoryParser.categoryArray;
+                self.offerArray = sharedOfferParser.offerArray;
+                [self.tableView reloadData];
+                [self.activityIndicatorView stopAnimating];
+            });
         });
     }
-    else if ([[notification name] isEqualToString:@"finishParsing"])
+    else
     {
-        [self.activityIndicatorView stopAnimating];
-        self.offerArray = self.delegate.offerArray;
-        self.categoryArray = self.delegate.categoryArray;
-        [self.categoryTableView reloadData];
+        self.categoryArray = sharedCategoryParser.categoryArray;
+        self.offerArray = sharedOfferParser.offerArray;
     }
 }
 
-#pragma mark - Reachability
-
-- (void) reachabilityChanged:(NSNotification *)note
-{
-    Reachability* curReach = [note object];
-    [self checkReachability:curReach];
-}
-
--(void) checkReachability:(Reachability *)reachability{
-    NetworkStatus netStatus = [reachability currentReachabilityStatus];
-    if (netStatus == NotReachable)
-    {
-        [self.activityIndicatorView stopAnimating];
-        UIAlertController *internetConnectionController = [UIAlertController alertControllerWithTitle:@"Problem" message:@"Please, switch on the Internet to parse new offers" preferredStyle:UIAlertControllerStyleAlert];
-        [self presentViewController:internetConnectionController animated:YES completion:nil];
-        
-        UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleDefault handler:nil];
-        
-        UIAlertAction *settingsAction = [UIAlertAction actionWithTitle:@"Settings" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action){
-            [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
-        }];
-        
-        [internetConnectionController addAction:settingsAction];
-        [internetConnectionController addAction:cancelAction];
-    }
-}
+//#pragma mark - Reachability
+//
+//- (void) reachabilityChanged:(NSNotification *)note
+//{
+//    Reachability* curReach = [note object];
+//    [self checkReachability:curReach];
+//}
+//
+//-(void) checkReachability:(Reachability *)reachability{
+//    NetworkStatus netStatus = [reachability currentReachabilityStatus];
+//    if (netStatus == NotReachable)
+//    {
+//        [self.activityIndicatorView stopAnimating];
+//        UIAlertController *internetConnectionController = [UIAlertController alertControllerWithTitle:@"Problem" message:@"Please, switch on the Internet to parse new offers" preferredStyle:UIAlertControllerStyleAlert];
+//        [self presentViewController:internetConnectionController animated:YES completion:nil];
+//        
+//        UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleDefault handler:nil];
+//        
+//        UIAlertAction *settingsAction = [UIAlertAction actionWithTitle:@"Settings" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action){
+//            [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+//        }];
+//        
+//        [internetConnectionController addAction:settingsAction];
+//        [internetConnectionController addAction:cancelAction];
+//    }
+//}
 
 
 

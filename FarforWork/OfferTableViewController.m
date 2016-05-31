@@ -86,17 +86,13 @@
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     OfferTableViewCell *cell = (OfferTableViewCell *)[tableView dequeueReusableCellWithIdentifier:@"OfferCellIdentifier"];
-    return cell;
-}
-
--(void) tableView:(UITableView *)tableView willDisplayCell:(OfferTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
-{
     Offer *offer = [self.sortedOfferArray objectAtIndex:indexPath.row];
     if (!offer.offerPictureData)
     {
         [self loadThumbnailsforOffer:offer withIndexPath:indexPath];
     }
     [cell setInternalFields:offer];
+    return cell;
 }
 
 #pragma mark - Navigation

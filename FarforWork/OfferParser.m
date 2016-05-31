@@ -27,16 +27,20 @@
 
 @implementation OfferParser
 
--(id) initWithArray: (NSMutableArray *)offerArray{
-    self = [super init];
-    if (self)
-    {
-        self.offerArray = offerArray;
-    }
-    return self;
+#pragma mark Singleton Methods
+
++ (id)sharedOfferParser {
+    static OfferParser *sharedOfferParser = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        sharedOfferParser = [[self alloc] init];
+    });
+    return sharedOfferParser;
 }
 
+
 -(void) parseXMLFile{
+    self.offerArray = [[NSMutableArray alloc]init];
     NSURL *xmlPath = [NSURL URLWithString:@"http://ufa.farfor.ru/getyml/?key=ukAXxeJYZN"];
     self.parser = [[NSXMLParser alloc]initWithContentsOfURL:xmlPath];
     self.parser.delegate = (id)self;

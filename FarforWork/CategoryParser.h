@@ -11,8 +11,9 @@
 @interface CategoryParser : NSObject
 
 @property (strong,nonatomic) NSMutableArray *categoryArray;
+@property (nonatomic) BOOL wasParsed;
 
--(id) initWithArray: (NSMutableArray *)categoryArray;
++ (id)sharedCategoryParser;
 
 -(void) parseXMLFile;
 

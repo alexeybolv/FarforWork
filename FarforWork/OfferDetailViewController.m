@@ -19,6 +19,16 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+//    [self setInternalFields];
+}
+
+-(void)viewWillLayoutSubviews
+{
+    [self.offerDescriptionTextView scrollRangeToVisible:NSMakeRange(0, 1)];
+}
+
+- (void)viewWillAppear:(BOOL)animated
+{
     [self setInternalFields];
 }
 

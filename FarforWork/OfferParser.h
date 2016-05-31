@@ -12,7 +12,7 @@
 
 @property (strong,nonatomic) NSMutableArray *offerArray;
 
--(id) initWithArray: (NSMutableArray *)offerArray;
++ (id)sharedOfferParser;
 
 -(void) parseXMLFile;
 
